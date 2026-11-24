@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1217">
+<title>BFTS Tuner</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--bg:#0f1217;--panel:#171b22;--panel2:#1f2530;--line:#2a303a;--grey:#8a94a3;--green:#3ddc84;--amber:#ffc247;--red:#ff5c5c;--blue:#2f6fed;--text:#fff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{padding:env(safe-area-inset-top) 8px env(safe-area-inset-bottom);min-height:100vh;display:flex;justify-content:center}
+.app{width:100%;max-width:520px;padding:10px 0 28px}
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+h1{font-size:20px;margin:0}
+.sub{color:var(--grey);font-size:12px;margin-top:2px}
+.seg{display:flex;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{flex:1;background:none;border:0;color:var(--grey);padding:10px 6px;font-size:14px;min-height:46px}
+.seg button[aria-pressed="true"]{background:var(--blue);color:#fff;font-weight:600}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+#readout .top{display:flex;align-items:center;gap:12px}
+#note{font-size:76px;font-weight:700;line-height:1;min-width:150px;text-align:center}
+#strnum{font-size:12px;color:var(--grey);text-align:center;margin-top:4px}
+#cents{font-size:36px;font-weight:700}
+#status{font-size:17px;font-weight:700;margin-top:2px}
+#info{color:var(--grey);font-size:12.5px;margin-top:10px;min-height:18px}
+#meter{height:4px;background:var(--panel2);border-radius:2px;margin-top:12px;overflow:hidden}
+#meter i{display:block;height:100%;width:0;background:var(--blue);transition:width .08s linear}
+.strings{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:12px}
+.str{background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:8px 2px;min-height:58px;font-size:15px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.str small{color:var(--grey);font-size:11px}
+.str.on{background:var(--blue);border-color:var(--blue)}
+.str.on small{color:#dbe6ff}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+.btn{background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:0 14px;min-height:48px;font-size:15px}
+.btn[aria-pressed="true"]{background:var(--blue);border-color:var(--blue)}
+.btn:disabled{opacity:.4}
+.a4{display:flex;align-items:center;gap:6px;color:var(--grey);font-size:14px}
+#hint{color:var(--amber);font-size:12.5px;line-height:1.45;margin-top:10px;display:none}
+#attackTag{color:#6ea8ff}
+.a4 input{width:74px;min-height:44px;background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:8px;text-align:center;font-size:16px}
+.a4 button{width:44px;min-height:44px;font-size:20px;padding:0}
+details{margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+summary{min-height:34px;display:flex;align-items:center;color:var(--grey);font-size:14px}
+.offs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:8px 0 4px}
+.offs label{display:flex;flex-direction:column;font-size:12px;color:var(--grey);gap:4px}
+.offs input{min-height:44px;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;text-align:center;font-size:16px}
+.offs input:disabled{opacity:.4}
+.note{color:var(--grey);font-size:12px;line-height:1.5;margin-top:10px}
+#overlay{position:fixed;inset:0;background:rgba(15,18,23,.96);display:flex;align-items:center;justify-content:center;padding:24px;z-index:10}
+#overlay .card{max-width:420px;text-align:center}
+#overlay h2{margin:0 0 8px;font-size:26px}
+#overlay p{color:var(--grey);line-height:1.5;font-size:14.5px}
+#startBtn{background:var(--green);color:#06210f;border:0;border-radius:14px;font-size:18px;font-weight:700;min-height:56px;padding:0 28px;margin-top:10px}
+#err{color:var(--red);margin-top:12px;font-size:14px;min-height:20px}
+/* ===== skin ===== */
+body{background:radial-gradient(120% 70% at 50% 0%,#162033 0%,#080b11 62%,#05070a 100%) fixed}
+h1{letter-spacing:.08em;font-weight:800}
+.sub{color:#ffb83d}
+.seg{background:#0d121a;border-color:#2c3646;box-shadow:inset 0 1px 3px rgba(0,0,0,.5)}
+.seg button{font-weight:600;letter-spacing:.02em}
+.seg button[aria-pressed="true"]{background:linear-gradient(#5aaeff,#2260c4);box-shadow:0 0 16px rgba(74,163,255,.55)}
+.panel{position:relative;background:linear-gradient(#1c2431,#0e131b);border:1px solid #2c3646;border-radius:20px;padding:12px 8px 14px;box-shadow:0 12px 32px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.07);transition:box-shadow .25s,border-color .25s}
+.panel.tuned{border-color:rgba(53,240,139,.95);box-shadow:0 0 30px rgba(53,240,139,.38),0 12px 32px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.07)}
+.pills{display:flex;gap:6px;align-items:center}
+.pill{font-size:9.5px;font-weight:800;letter-spacing:.12em;padding:4px 10px;border-radius:999px;border:1px solid rgba(255,184,61,.95);color:#ffd989;background:rgba(255,184,61,.14);box-shadow:0 0 10px rgba(255,184,61,.35);white-space:nowrap}
+.pill.std{border-color:#667487;color:#aeb8c6;background:rgba(134,147,166,.1);box-shadow:none}
+.pill.blue{border-color:rgba(74,163,255,.95);color:#a9d2ff;background:rgba(74,163,255,.15);box-shadow:0 0 10px rgba(74,163,255,.4)}
+.pill.off{opacity:.45;box-shadow:none}
+#readout .top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px}
+.noteBox{text-align:center;min-width:128px}
+#note{font-size:84px;font-weight:800;line-height:1;transition:text-shadow .2s}
+#strnum{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--grey);margin-top:4px}
+.centsBox{text-align:center;flex:1}
+#cents{font-size:36px;font-weight:800;text-shadow:0 0 18px currentColor}
+#status{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.08em;margin-top:6px;padding:4px 12px;border-radius:999px;border:1px solid currentColor;background:rgba(255,255,255,.04)}
+#status:empty,#status.none{border-color:transparent;background:none}
+svg#arc{width:100%;height:auto;display:block;margin-top:-2px}
+#needleG{transform-box:view-box;transform-origin:200px 195px;transition:transform .14s cubic-bezier(.2,.9,.3,1.15),opacity .2s}
+#leds{display:flex;justify-content:center;gap:3px;margin-top:4px}
+#leds i{display:block;width:12px;height:12px;border-radius:3px;background:#18202b;border:1px solid #2c3646;transition:background .08s,box-shadow .08s}
+#leds i.mid{height:18px;margin-top:-3px}
+#leds i.on.g{background:linear-gradient(#8bffbf,#27c46b);border-color:#9dffc9;box-shadow:0 0 9px rgba(53,240,139,.85)}
+#leds i.on.a{background:linear-gradient(#ffd98a,#e69a14);border-color:#ffe2a6;box-shadow:0 0 9px rgba(255,184,61,.8)}
+#leds i.on.r{background:linear-gradient(#ff8a96,#d6283c);border-color:#ffaab3;box-shadow:0 0 9px rgba(255,77,94,.8)}
+#leds i.mid:not(.on){background:rgba(53,240,139,.25)}
+#ledcap{display:flex;justify-content:space-between;font-size:10px;color:var(--grey);margin:2px 8px 0}
+#info{color:var(--grey);font-size:12px;margin-top:8px;text-align:center;min-height:16px}
+#meter{height:3px;background:#161d28;border-radius:2px;margin-top:10px;overflow:hidden}
+#meter i{background:linear-gradient(90deg,#2260c4,#5aaeff)}
+.str{background:linear-gradient(#1b2330,#0e131b);border:1px solid #2c3646;border-radius:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.07)}
+.str b{font-size:17px}
+.str.on{background:linear-gradient(#5aaeff,#17468f);border-color:#8fc8ff;box-shadow:0 0 16px rgba(74,163,255,.65),inset 0 1px 0 rgba(255,255,255,.3)}
+.btn{background:linear-gradient(#1b2330,#0e131b);border:1px solid #2c3646;box-shadow:inset 0 1px 0 rgba(255,255,255,.07)}
+.btn[aria-pressed="true"]{background:linear-gradient(#5aaeff,#17468f);border-color:#8fc8ff;box-shadow:0 0 14px rgba(74,163,255,.55)}
+details{background:linear-gradient(#171e2a,#0e131b);border-color:#2c3646}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div><h1>BFTS Tuner</h1><div class="sub">Standard + Buzz Feiten Tuning System</div></div>
+    <div class="seg" role="group" aria-label="Preset">
+      <button id="pStd" aria-pressed="false">Standard</button>
+      <button id="pBf" aria-pressed="true">BFTS open</button>
+      <button id="pBf12" aria-pressed="false">BFTS 12th fret</button>
+    </div>
+  </header>
+
+  <section class="panel" id="readout">
+    <div class="pills">
+      <span class="pill" id="presetPill">BUZZ FEITEN - OPEN</span>
+      <span class="pill blue" id="dropPill" style="display:none">DROP D</span>
+      <span class="pill blue" id="attackPill" style="margin-left:auto">ATTACK ARMED</span>
+    </div>
+    <div class="top">
+      <div class="noteBox"><div id="note">--</div><div id="strnum">&nbsp;</div></div>
+      <div class="centsBox"><div id="cents">Play a string</div><div id="status">&nbsp;</div></div>
+    </div>
+    <svg id="arc" viewBox="30 4 340 208" role="img" aria-label="Tuning gauge"></svg>
+    <div id="leds" aria-hidden="true"></div>
+    <div id="ledcap"><span>-5</span><span>fine (cents)</span><span>+5</span></div>
+    <div id="info">&nbsp;</div>
+    <div id="meter" title="Microphone level"><i></i></div>
+  </section>
+
+  <div class="strings" id="strings"></div>
+
+  <div class="row">
+    <button class="btn" id="autoBtn" aria-pressed="true">Auto-detect</button>
+    <button class="btn" id="toneBtn" aria-pressed="false">Play tone</button>
+    <button class="btn" id="dropBtn" aria-pressed="false">Drop D</button>
+    <button class="btn" id="attackBtn" aria-pressed="false">Attack mode</button>
+  </div>
+  <div class="row">
+    <div class="a4">
+      A4
+      <button class="btn" id="a4Dn" aria-label="Lower A4">&minus;</button>
+      <input id="a4" type="number" inputmode="decimal" min="415" max="466" step="0.1" value="440">
+      <button class="btn" id="a4Up" aria-label="Raise A4">+</button>
+    </div>
+  </div>
+
+  <div id="hint"></div>
+
+  <details id="offDetails">
+    <summary id="offSummary">Offsets (cents)</summary>
+    <div class="offs" id="offs"></div>
+    <button class="btn" id="resetBf">Reset offsets to defaults</button>
+    <div class="note">Open strings: 6th E &minus;2, 5th A &minus;2, 4th D &minus;2, 3rd G &minus;2, 2nd B +1, 1st E 0. Drop D (6th string): &minus;4. 12th fret: E 0, B 0, G +1, D +1, A 0, E 0. Use the Buzz Feiten presets only on a guitar with a Buzz Feiten nut; on any other guitar use Standard.</div>
+  </details>
+
+  <div class="note">Tip: hold the phone near the soundhole or pickup and pluck one string. Green means within 1 cent. <b>Attack mode</b> reads the first moments of each pluck and holds that reading, so you tune to the attack, not to where the note settles (notes settle flat). Re-strike to update it. The tone button plays the selected string, including its offset, so you can tune by ear; detection pauses while it plays.</div>
+</div>
+
+<div id="overlay">
+  <div class="card">
+    <h2>BFTS Tuner</h2>
+    <p>Tap Start and allow microphone access. The tuner listens to your guitar through the phone's microphone. Nothing is recorded or sent anywhere; all processing happens on your phone.</p>
+    <button id="startBtn">Start tuning</button>
+    <div id="err"></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ===================== tuning model ===================== */
+const STRINGS = [
+  { n: 6, midi: 40 }, { n: 5, midi: 45 }, { n: 4, midi: 50 },
+  { n: 3, midi: 55 }, { n: 2, midi: 59 }, { n: 1, midi: 64 }
+];                                              // E2 A2 D3 G3 B3 E4 (6th string first)
+const BFTS_OPEN_DEFAULT = [-2, -2, -2, -2, 1, 0];   // open-string offsets, cents
+const BFTS_12_DEFAULT   = [0, 0, 1, 1, 0, 0];       // 12th-fret intonation offsets, cents
+const DROPD_DEFAULT = -4;                           // open 6th string tuned to D2
+
+function centsBetween(f, ref) { return 1200 * Math.log2(f / ref); }
+function frequencyForMidi(midi, a4, offsetCents) {
+  return a4 * Math.pow(2, (midi - 69) / 12 + offsetCents / 1200);
+}
+function noteNameFromMidi(m) {
+  return ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][((m % 12) + 12) % 12] + (Math.floor(m / 12) - 1);
+}
+
+/* ===================== YIN pitch detection ===================== */
+class Yin {
+  constructor(fs, windowSize = 2048, minHz = 60, maxHz = 900, threshold = 0.15) {
+    this.fs = fs; this.W = windowSize; this.threshold = threshold;
+    this.tauMin = Math.max(2, Math.floor(fs / maxHz));
+    this.tauMax = Math.ceil(fs / minHz);
+    this.diff = new Float64Array(this.tauMax + 3);
+    this.cmndf = new Float64Array(this.tauMax + 3);
+  }
+  get required() { return this.W + this.tauMax + 2; }
+  detect(x, off) {
+    const { W, tauMin, tauMax, diff, cmndf, threshold, fs } = this;
+    for (let tau = 1; tau <= tauMax + 1; tau++) {
+      let sum = 0;
+      for (let j = 0; j < W; j++) { const d = x[off + j] - x[off + j + tau]; sum += d * d; }
+      diff[tau] = sum;
+    }
+    cmndf[0] = 1;
+    let running = 0;
+    for (let tau = 1; tau <= tauMax + 1; tau++) {
+      running += diff[tau];
+      cmndf[tau] = running > 0 ? diff[tau] * tau / running : 1;
+    }
+    let best = -1;
+    for (let tau = tauMin; tau <= tauMax; tau++) {
+      if (cmndf[tau] < threshold) {
+        while (tau + 1 <= tauMax && cmndf[tau + 1] < cmndf[tau]) tau++;
+        best = tau; break;
+      }
+    }
+    if (best < 0) {
+      let minVal = 1e9;
+      for (let tau = tauMin; tau <= tauMax; tau++) if (cmndf[tau] < minVal) { minVal = cmndf[tau]; best = tau; }
+      if (best < 0 || minVal > 0.35) return null;
+    }
+    let t = best;
+    if (best > 1 && best <= tauMax) {
+      const s0 = cmndf[best - 1], s1 = cmndf[best], s2 = cmndf[best + 1];
+      const den = s0 - 2 * s1 + s2;
+      if (Math.abs(den) > 1e-12) { const sh = 0.5 * (s0 - s2) / den; if (Math.abs(sh) < 1) t += sh; }
+    }
+    return { freq: fs / t, confidence: Math.max(0, 1 - cmndf[best]) };
+  }
+}
+
+/* Keeps a short history of readings and decides when a pitch is "present".
+   Normal mode: continuously updated (median of the last 5 readings).
+   Attack mode: after each pluck, reads the pitch 80-320 ms into the note and latches it, so the
+   reading reflects the attack rather than where the note settles. It stays until the next pluck. */
+class PitchTracker {
+  constructor(fs) {
+    this.yin = new Yin(fs);
+    this.required = this.yin.required;
+    this.gateDb = -55;
+    this.attackMode = false;
+    this.levelDb = -100;
+    this._reset();
+  }
+  _reset() {
+    this.recent = []; this.attackReadings = [];
+    this.valid = false; this.freq = 0; this.latched = false;
+    this.lastPitchMs = 0; this._prev = -100; this._lastOnset = -1e9;
+    this._armed = false; this._attackStart = 0; this._latchedAt = 0;
+    this._lastMode = this.attackMode;
+  }
+  update(samples, nowMs) {
+    const n = samples.length, off = n - this.required;
+    if (off < 0) return;
+    const tail = 2048; let sumSq = 0;
+    for (let i = n - tail; i < n; i++) sumSq += samples[i] * samples[i];
+    this.levelDb = 10 * Math.log10(sumSq / tail + 1e-12);
+
+    if (this.attackMode !== this._lastMode) this._reset();
+
+    const onset = this.levelDb > this.gateDb && (this._prev <= this.gateDb || this.levelDb - this._prev > 6) && (nowMs - this._lastOnset > 250);
+    this._prev = this.levelDb;
+
+    const r = this.levelDb > this.gateDb ? this.yin.detect(samples, off) : null;
+    const good = !!(r && r.confidence > 0.8);
+    if (this.attackMode) this._attack(onset, good, r, nowMs); else this._continuous(good, r, nowMs);
+  }
+  _continuous(good, r, nowMs) {
+    if (good) {
+      if (this.recent.length && Math.abs(centsBetween(r.freq, median(this.recent))) > 60) this.recent = [];
+      this.recent.push(r.freq);
+      if (this.recent.length > 5) this.recent.shift();
+      this.freq = median(this.recent); this.valid = true; this.lastPitchMs = nowMs;
+    } else if (nowMs - this.lastPitchMs > 300) {
+      this.valid = false; this.recent = [];
+    }
+  }
+  _attack(onset, good, r, nowMs) {
+    if (onset) { this._lastOnset = nowMs; this._attackStart = nowMs; this.attackReadings = []; this._armed = true; }
+    if (this._armed) {
+      const dt = nowMs - this._attackStart;
+      if (dt >= 80 && dt <= 320 && good) this.attackReadings.push(r.freq);
+      if (dt > 320) {
+        this._armed = false;
+        if (this.attackReadings.length) { this.freq = median(this.attackReadings); this.valid = true; this.latched = true; this._latchedAt = nowMs; }
+      }
+    }
+    if (this.latched && this.levelDb < this.gateDb && nowMs - this._latchedAt > 12000) { this.valid = false; this.latched = false; }
+  }
+}
+function median(values) { const v = values.slice().sort((a, b) => a - b); return v[Math.floor(v.length / 2)]; }
+
+/* ===================== settings ===================== */
+const settings = {
+  preset: 'bfts',            // 'std' | 'bfts' (open strings) | 'bf12' (12th-fret intonation)
+  v: 2, a4: 440, auto: true, selected: 0,
+  offsets: BFTS_OPEN_DEFAULT.slice(), offsets12: BFTS_12_DEFAULT.slice(),
+  dropD: false, dropDOffset: DROPD_DEFAULT, attack: true
+};
+const validOffsets = a => Array.isArray(a) && a.length === 6 && a.every(v => typeof v === 'number' && Math.abs(v) <= 10);
+function loadSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem('bftsTuner') || 'null');
+    if (!s) return;
+    // Settings saved by older versions (no v:2) keep A4 and offsets, but adopt the new defaults
+    // for the preset (Buzz Feiten open strings) and attack mode (on).
+    const current = s.v === 2;
+    if (current && ['std', 'bfts', 'bf12'].includes(s.preset)) settings.preset = s.preset;
+    if (typeof s.a4 === 'number' && s.a4 >= 415 && s.a4 <= 466) settings.a4 = s.a4;
+    if (typeof s.auto === 'boolean') settings.auto = s.auto;
+    if (Number.isInteger(s.selected) && s.selected >= 0 && s.selected < 6) settings.selected = s.selected;
+    if (validOffsets(s.offsets)) settings.offsets = s.offsets;
+    if (validOffsets(s.offsets12)) settings.offsets12 = s.offsets12;
+    if (typeof s.dropD === 'boolean') settings.dropD = s.dropD;
+    if (typeof s.dropDOffset === 'number' && Math.abs(s.dropDOffset) <= 10) settings.dropDOffset = s.dropDOffset;
+    if (current && typeof s.attack === 'boolean') settings.attack = s.attack;
+  } catch (e) { /* storage unavailable: use defaults */ }
+}
+function saveSettings() { try { localStorage.setItem('bftsTuner', JSON.stringify(settings)); } catch (e) { /* ignore */ } }
+
+/* What each string is tuned to in the current mode: Drop D lowers the 6th string two semitones;
+   the 12th-fret preset reads the fretted note, an octave higher. */
+function midiFor(idx) { let m = STRINGS[idx].midi; if (idx === 0 && settings.dropD) m -= 2; if (settings.preset === 'bf12') m += 12; return m; }
+function nameFor(idx) { return noteNameFromMidi(midiFor(idx)); }
+function offsetFor(idx) {
+  if (settings.preset === 'bfts') return (idx === 0 && settings.dropD) ? settings.dropDOffset : settings.offsets[idx];
+  if (settings.preset === 'bf12') return settings.offsets12[idx];
+  return 0;
+}
+function targetFor(idx) { return frequencyForMidi(midiFor(idx), settings.a4, offsetFor(idx)); }
+function offsetLabel() { return settings.preset === 'bf12' ? 'BFTS 12th' : settings.preset === 'bfts' ? 'BFTS' : ''; }
+
+/* ===================== UI ===================== */
+const $ = id => document.getElementById(id);
+const fmt = (c, d = 1) => (c >= 0 ? '+' : '\u2212') + Math.abs(c).toFixed(d);
+function colourFor(c) { const a = Math.abs(c); return a <= 1 ? 'var(--green)' : a <= 5 ? 'var(--amber)' : 'var(--red)'; }
+
+/* ----- analog arc gauge (+/-50 cents) and LED bar (+/-5 cents) ----- */
+const SVGNS = 'http://www.w3.org/2000/svg', PX = 200, PY = 195, RAD = 140, SWEEP = 56;
+const angleOf = c => Math.max(-50, Math.min(50, c)) / 50 * SWEEP * Math.PI / 180;
+const ptOn = (r, a) => [PX + r * Math.sin(a), PY - r * Math.cos(a)];
+function svgEl(tag, attrs, parent) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function arcPath(c0, c1, r) {
+  const [x0, y0] = ptOn(r, angleOf(c0)), [x1, y1] = ptOn(r, angleOf(c1));
+  return 'M' + x0.toFixed(2) + ' ' + y0.toFixed(2) + ' A' + r + ' ' + r + ' 0 0 1 ' + x1.toFixed(2) + ' ' + y1.toFixed(2);
+}
+let needleG, ledEls = [];
+function buildGauge() {
+  const svg = $('arc'); svg.innerHTML = '';
+  const defs = svgEl('defs', {}, svg);
+  const glow = svgEl('filter', { id: 'glow', x: '-50%', y: '-50%', width: '200%', height: '200%' }, defs);
+  svgEl('feGaussianBlur', { stdDeviation: '4' }, glow);
+  const arc = (c0, c1, w, col, op, filt) => svgEl('path', { d: arcPath(c0, c1, RAD), fill: 'none', stroke: col, 'stroke-width': w, 'stroke-opacity': op, ...(filt ? { filter: 'url(#glow)' } : {}) }, svg);
+  arc(-50, 50, 15, '#05070b', 1);
+  arc(-50, -5, 8, '#ff4d5e', .85); arc(5, 50, 8, '#ff4d5e', .85);
+  arc(-5, -1, 8, '#ffb83d', .9);   arc(1, 5, 8, '#ffb83d', .9);
+  arc(-1, 1, 16, '#35f08b', .9, true);
+  arc(-1, 1, 8, '#35f08b', 1);
+  for (let c = -50; c <= 50; c += 5) {
+    const major = c % 10 === 0, len = c === 0 ? 18 : major ? 12 : 6, a = angleOf(c);
+    const [x0, y0] = ptOn(RAD + 11, a), [x1, y1] = ptOn(RAD + 11 + len, a);
+    svgEl('line', { x1: x0, y1: y0, x2: x1, y2: y1, stroke: c === 0 ? '#fff' : '#8693a6', 'stroke-opacity': major ? .95 : .5, 'stroke-width': c === 0 ? 2.4 : 1.3 }, svg);
+    if (major) {
+      const [lx, ly] = ptOn(RAD + 11 + 18 + 11, a);
+      const t = svgEl('text', { x: lx, y: ly + 3.5, 'text-anchor': 'middle', 'font-size': 10.5, fill: c === 0 ? '#fff' : '#8693a6', 'font-family': 'system-ui,sans-serif' }, svg);
+      t.textContent = c === 0 ? '0' : (c > 0 ? '+' : '\u2212') + Math.abs(c);
+    }
+  }
+  needleG = svgEl('g', { id: 'needleG' }, svg);
+  svgEl('line', { id: 'needleGlow', x1: PX, y1: PY, x2: PX, y2: PY - RAD - 6, stroke: '#8693a6', 'stroke-width': 12, 'stroke-opacity': .25, 'stroke-linecap': 'round' }, needleG);
+  svgEl('polygon', { points: (PX - 6) + ',' + PY + ' ' + (PX + 6) + ',' + PY + ' ' + (PX + .9) + ',' + (PY - RAD - 6) + ' ' + (PX - .9) + ',' + (PY - RAD - 6), fill: '#fff' }, needleG);
+  svgEl('circle', { cx: PX, cy: PY, r: 13, fill: '#141a24', stroke: '#2c3646', 'stroke-width': 1.6, id: 'hubRing' }, svg);
+  svgEl('circle', { cx: PX, cy: PY, r: 3.8, fill: '#8693a6', id: 'hubDot' }, svg);
+
+  const leds = $('leds'); leds.innerHTML = ''; ledEls = [];
+  for (let i = 0; i < 21; i++) { const e = document.createElement('i'); if (i === 10) e.className = 'mid'; leds.appendChild(e); ledEls.push(e); }
+}
+function renderGauge(cents, active, colour, inTune) {
+  const deg = active ? Math.max(-50, Math.min(50, cents)) / 50 * SWEEP : 0;
+  needleG.style.transform = 'rotate(' + deg.toFixed(2) + 'deg)';
+  needleG.style.opacity = active ? '1' : '.35';
+  needleG.dataset.cents = active ? cents.toFixed(2) : '';
+  $('needleGlow').setAttribute('stroke', active ? colour : '#8693a6');
+  $('hubRing').setAttribute('stroke', active ? colour : '#2c3646');
+  $('hubDot').setAttribute('fill', active ? colour : '#8693a6');
+  const litTo = Math.round(Math.max(-10, Math.min(10, cents * 2)));
+  ledEls.forEach((e, i) => {
+    const u = i - 10, c = Math.abs(u * 0.5);
+    const lit = active && ((u >= 0 && u <= litTo) || (u <= 0 && u >= litTo));
+    e.className = (i === 10 ? 'mid ' : '') + (lit ? 'on ' + (c <= 1 ? 'g' : c <= 3 ? 'a' : 'r') : '');
+  });
+  $('readout').classList.toggle('tuned', !!inTune);
+}
+function buildStrings() {
+  const box = $('strings'); box.innerHTML = '';
+  STRINGS.forEach((s, i) => {
+    const b = document.createElement('button');
+    b.className = 'str'; b.dataset.idx = i;
+    b.innerHTML = '<b></b><small></small>';
+    b.addEventListener('click', () => { settings.auto = false; settings.selected = i; saveSettings(); refreshControls(); if (toneOn) updateTone(); });
+    box.appendChild(b);
+  });
+}
+
+/* The six boxes edit whichever offset set is in use. With Drop D on (open-string preset) the 6th box edits the Drop D offset. */
+function getOffset(i) {
+  if (settings.preset === 'bf12') return settings.offsets12[i];
+  return (i === 0 && settings.dropD) ? settings.dropDOffset : settings.offsets[i];
+}
+function setOffset(i, v) {
+  if (settings.preset === 'bf12') settings.offsets12[i] = v;
+  else if (i === 0 && settings.dropD) settings.dropDOffset = v;
+  else settings.offsets[i] = v;
+}
+function buildOffsets() {
+  const box = $('offs'); box.innerHTML = '';
+  STRINGS.forEach((s, i) => {
+    const l = document.createElement('label');
+    const t = document.createElement('span'); t.dataset.idx = i; l.appendChild(t);
+    const inp = document.createElement('input');
+    inp.type = 'number'; inp.step = '0.1'; inp.min = '-10'; inp.max = '10'; inp.inputMode = 'decimal'; inp.dataset.idx = i;
+    inp.addEventListener('change', () => {
+      let v = parseFloat(inp.value);
+      if (!isFinite(v)) v = settings.preset === 'bf12' ? BFTS_12_DEFAULT[i] : (i === 0 && settings.dropD ? DROPD_DEFAULT : BFTS_OPEN_DEFAULT[i]);
+      setOffset(i, Math.max(-10, Math.min(10, v))); saveSettings(); refreshControls(); if (toneOn) updateTone();
+    });
+    l.appendChild(inp); box.appendChild(l);
+  });
+}
+
+let toneOn = false;
+const HINTS = {
+  bf12: '12th-fret intonation: fret each string at the 12th fret (the fretted note, not the harmonic). The note names shown are an octave above the open strings.',
+  std: ''
+};
+function refreshControls() {
+  const p = settings.preset;
+  $('pStd').setAttribute('aria-pressed', p === 'std');
+  $('pBf').setAttribute('aria-pressed', p === 'bfts');
+  $('pBf12').setAttribute('aria-pressed', p === 'bf12');
+  $('autoBtn').setAttribute('aria-pressed', settings.auto);
+  $('toneBtn').setAttribute('aria-pressed', toneOn);
+  $('dropBtn').setAttribute('aria-pressed', settings.dropD);
+  $('attackBtn').setAttribute('aria-pressed', settings.attack);
+  $('a4').value = settings.a4.toFixed(1);
+  if (tracker) tracker.attackMode = settings.attack;
+
+  document.querySelectorAll('.str').forEach((el, i) => {
+    el.firstElementChild.textContent = STRINGS[i].n + ' \u00b7 ' + nameFor(i);
+    el.lastElementChild.textContent = fmt(offsetFor(i)) + '\u00a2';
+  });
+  $('offSummary').textContent = p === 'bf12' ? 'Offsets (cents) \u2013 12th fret' : p === 'bfts' ? 'Offsets (cents) \u2013 open strings' : 'Offsets (cents) \u2013 off in Standard';
+  document.querySelectorAll('#offs label span').forEach((t, i) => {
+    t.textContent = STRINGS[i].n + ' \u00b7 ' + nameFor(i) + (p === 'bfts' && i === 0 && settings.dropD ? ' (drop D)' : '');
+  });
+  document.querySelectorAll('#offs input').forEach((inp, i) => {
+    if (document.activeElement !== inp) inp.value = getOffset(i).toFixed(1);
+    inp.disabled = p === 'std';
+  });
+  $('resetBf').disabled = p === 'std';
+  const hint = $('hint');
+  hint.textContent = HINTS[p] || '';
+  hint.style.display = HINTS[p] ? 'block' : 'none';
+}
+
+/* ===================== audio ===================== */
+let ctx = null, analyser = null, tracker = null, buf = null, osc = null, toneGain = null;
+let lastIdx = -1, hadValue = false, smoothed = 0, lastValidMs = 0;
+
+async function startAudio() {
+  $('err').textContent = '';
+  if (!window.isSecureContext) { $('err').textContent = 'The microphone needs a secure (https) page. Open the tuner from its https web address.'; return; }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { $('err').textContent = 'This browser cannot access the microphone. Try Chrome.'; return; }
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    ctx = new AC();
+    if (ctx.state === 'suspended') await ctx.resume();
+    // Turn off the phone's voice processing: it would distort the pitch.
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 } });
+    const src = ctx.createMediaStreamSource(stream);
+    analyser = ctx.createAnalyser();
+    tracker = new PitchTracker(ctx.sampleRate);
+    tracker.attackMode = settings.attack;
+    let size = 4096; while (size < tracker.required) size *= 2;
+    analyser.fftSize = size;
+    buf = new Float32Array(analyser.fftSize);
+    src.connect(analyser);
+    $('overlay').style.display = 'none';
+    setInterval(analyse, 40);
+    requestWakeLock();
+  } catch (e) {
+    $('err').textContent = (e && e.name === 'NotAllowedError')
+      ? 'Microphone permission was denied. Allow it in the browser/site settings, then tap Start again.'
+      : 'Could not start the microphone: ' + (e && e.message ? e.message : e);
+  }
+}
+function analyse() {
+  if (!ctx || toneOn) return;
+  analyser.getFloatTimeDomainData(buf);
+  tracker.update(buf, performance.now());
+}
+
+async function requestWakeLock() { try { if (navigator.wakeLock) await navigator.wakeLock.request('screen'); } catch (e) { /* optional */ } }
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { requestWakeLock(); if (ctx && ctx.state === 'suspended') ctx.resume(); } });
+
+function updateTone() {
+  if (!ctx) return;
+  if (toneOn) {
+    if (!osc) {
+      osc = ctx.createOscillator(); toneGain = ctx.createGain(); toneGain.gain.value = 0;
+      osc.setPeriodicWave(ctx.createPeriodicWave(new Float32Array([0, 0.7, 0.2, 0.1]), new Float32Array([0, 0, 0, 0])));
+      osc.connect(toneGain); toneGain.connect(ctx.destination); osc.start();
+    }
+    osc.frequency.setTargetAtTime(targetFor(settings.selected), ctx.currentTime, 0.01);
+    toneGain.gain.setTargetAtTime(0.35, ctx.currentTime, 0.02);
+  } else if (toneGain) {
+    toneGain.gain.setTargetAtTime(0, ctx.currentTime, 0.02);
+  }
+}
+
+/* ===================== render loop ===================== */
+function render() {
+  requestAnimationFrame(render);
+  const now = performance.now();
+  let idx = settings.selected, active = false, cents = 0, freq = 0, target = 0;
+
+  if (tracker) {
+    $('meter').firstElementChild.style.width = Math.max(0, Math.min(100, (tracker.levelDb + 80) / 80 * 100)) + '%';
+    if (!toneOn && tracker.valid) {
+      freq = tracker.freq;
+      if (settings.auto) {
+        let bestAbs = 1e9;
+        for (let i = 0; i < 6; i++) { const a = Math.abs(centsBetween(freq, targetFor(i))); if (a < bestAbs) { bestAbs = a; idx = i; } }
+      }
+      target = targetFor(idx);
+      const c = centsBetween(freq, target);
+      smoothed = (hadValue && idx === lastIdx && !settings.attack) ? smoothed + 0.4 * (c - smoothed) : c;
+      hadValue = true; lastIdx = idx; lastValidMs = now; active = true; cents = smoothed;
+    } else if (!toneOn && hadValue && now - lastValidMs < 1500 && lastIdx >= 0) {
+      idx = lastIdx; target = targetFor(idx); cents = smoothed; freq = target * Math.pow(2, cents / 1200); active = true;
+    } else { hadValue = false; }
+  }
+
+  const col = active ? colourFor(cents) : 'var(--grey)';
+  $('note').textContent = active ? nameFor(idx) : '--';
+  $('strnum').textContent = active ? 'String ' + STRINGS[idx].n + (settings.auto ? ' (auto)' : ' (manual)') : '\u00a0';
+  $('cents').textContent = active ? fmt(cents) + ' cents' : (toneOn ? 'Tone playing' : (settings.attack ? 'Pluck a string' : 'Play a string'));
+  $('cents').style.color = col;
+  const a = Math.abs(cents);
+  $('status').textContent = active ? (a <= 1 ? 'IN TUNE' : cents < 0 ? 'FLAT \u2013 tune up' : 'SHARP \u2013 tune down') : '\u00a0';
+  $('status').style.color = col;
+  const lab = offsetLabel();
+  $('info').textContent = active
+    ? 'Heard ' + freq.toFixed(2) + ' Hz | target ' + target.toFixed(2) + ' Hz' + (lab ? ' (' + lab + ' ' + fmt(offsetFor(idx)) + ' c)' : '')
+        + (settings.attack && tracker && tracker.latched ? ' | ATTACK reading, re-strike to update' : '')
+    : (toneOn ? 'Target ' + targetFor(settings.selected).toFixed(2) + ' Hz for string ' + STRINGS[settings.selected].n : '\u00a0');
+  renderGauge(cents, active, col, active && a <= 1);
+  $('note').style.textShadow = active ? '0 0 24px ' + col + ', 0 0 4px ' + col : 'none';
+  $('status').classList.toggle('none', !active);
+  const pp = $('presetPill');
+  pp.textContent = settings.preset === 'bf12' ? 'BUZZ FEITEN - 12TH FRET' : settings.preset === 'bfts' ? 'BUZZ FEITEN - OPEN' : 'STANDARD';
+  pp.className = 'pill' + (settings.preset === 'std' ? ' std' : '');
+  $('dropPill').style.display = settings.dropD ? '' : 'none';
+  const ap = $('attackPill');
+  ap.textContent = settings.attack ? (tracker && tracker.latched ? 'ATTACK LATCHED' : 'ATTACK ARMED') : 'CONTINUOUS';
+  ap.className = 'pill blue' + (settings.attack ? '' : ' off');
+
+  const highlight = active && settings.auto ? idx : (!settings.auto ? settings.selected : -1);
+  document.querySelectorAll('.str').forEach((b, i) => b.classList.toggle('on', i === highlight));
+}
+
+/* ===================== wiring ===================== */
+function init() {
+  loadSettings();
+  buildGauge();
+  buildStrings(); buildOffsets(); refreshControls();
+
+  const afterChange = () => { saveSettings(); refreshControls(); if (toneOn) updateTone(); };
+  $('pStd').addEventListener('click', () => { settings.preset = 'std'; afterChange(); });
+  $('pBf').addEventListener('click', () => { settings.preset = 'bfts'; afterChange(); });
+  $('pBf12').addEventListener('click', () => { settings.preset = 'bf12'; afterChange(); });
+  $('dropBtn').addEventListener('click', () => { settings.dropD = !settings.dropD; afterChange(); });
+  $('attackBtn').addEventListener('click', () => { settings.attack = !settings.attack; hadValue = false; afterChange(); });
+  $('autoBtn').addEventListener('click', () => { settings.auto = !settings.auto; saveSettings(); refreshControls(); });
+  $('toneBtn').addEventListener('click', () => { toneOn = !toneOn; if (toneOn && tracker) tracker.valid = false; updateTone(); refreshControls(); });
+  const setA4 = v => { if (isFinite(v)) { settings.a4 = Math.max(415, Math.min(466, Math.round(v * 10) / 10)); afterChange(); } };
+  $('a4Dn').addEventListener('click', () => setA4(settings.a4 - 1));
+  $('a4Up').addEventListener('click', () => setA4(settings.a4 + 1));
+  $('a4').addEventListener('change', () => setA4(parseFloat($('a4').value)));
+  $('resetBf').addEventListener('click', () => {
+    if (settings.preset === 'bf12') settings.offsets12 = BFTS_12_DEFAULT.slice();
+    else { settings.offsets = BFTS_OPEN_DEFAULT.slice(); settings.dropDOffset = DROPD_DEFAULT; }
+    afterChange();
+  });
+  $('startBtn').addEventListener('click', startAudio);
+
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
+  requestAnimationFrame(render);
+}
+init();
+</script>
+</body>
+</html>
